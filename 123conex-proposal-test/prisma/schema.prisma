@@ -1,0 +1,294 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum AccountType {
+  ADMIN
+  PROFESSIONAL
+  CLIENT
+}
+
+enum AppointmentStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  CANCELLED
+  EXECUTED
+}
+
+enum OnRequestStatus {
+  OPEN
+  CLOSED
+}
+
+enum OnProposalStatus {
+  PROPOSAL_SENT
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REFUNDED
+}
+
+// Core Models
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String
+  accounts  Account[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([email])
+}
+
+model Account {
+  id                  String           @id @default(cuid())
+  userId              String
+  type                AccountType
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctorProfile       DoctorProfile?
+  patientProfile      PatientProfile?
+  sentReviews         Review[]         @relation("SentReviews")
+  receivedReviews     Review[]         @relation("ReceivedReviews")
+  doctorAppointments  Appointment[]    @relation("DoctorAppointments")
+  patientAppointments Appointment[]    @relation("PatientAppointments")
+  onCallRequests      OnCallRequest[]
+  onCallProposals     OnCallProposal[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([type])
+}
+
+// Profile Models
+model DoctorProfile {
+  id                String             @id @default(cuid())
+  accountId         String             @unique
+  approved          Boolean            @default(false)
+  account           Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  activityDoctors   ActivityDoctor[]
+  practiceLocations PracticeLocation[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([accountId])
+  @@index([approved])
+}
+
+model PatientProfile {
+  id        String   @id @default(cuid())
+  accountId String   @unique
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model Specialty {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  activities  Activity[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([name])
+}
+
+model Activity {
+  id              String           @id @default(cuid())
+  name            String
+  specialtyId     String
+  specialty       Specialty        @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  activityDoctors ActivityDoctor[]
+  onCallRequests  OnCallRequest[]
+  description     String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([specialtyId])
+  @@index([name])
+}
+
+model ActivityDoctor {
+  id                      String                   @id @default(cuid())
+  activityId              String
+  activity                Activity                 @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  doctorProfileId         String
+  doctorProfile           DoctorProfile            @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+  estimatedDuration       Int
+  show                    Boolean                  @default(true)
+  activityDoctorLocations ActivityDoctorLocation[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  @@unique([activityId, doctorProfileId])
+  @@index([activityId])
+  @@index([doctorProfileId])
+}
+
+model PracticeLocation {
+  id                      String                   @id @default(cuid())
+  zipCode                 String
+  street                  String
+  complement              String?
+  neighborhood            String
+  city                    String
+  state                   String
+  country                 String
+  coordinates             String
+  doctorProfileId         String
+  doctorProfile           DoctorProfile            @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+  activityDoctorLocations ActivityDoctorLocation[]
+  onCallProposals         OnCallProposal[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  @@index([doctorProfileId])
+  @@index([zipCode])
+  @@index([city, state])
+}
+
+model ActivityDoctorLocation {
+  id                 String             @id @default(cuid())
+  activityDoctorId   String
+  activityDoctor     ActivityDoctor     @relation(fields: [activityDoctorId], references: [id], onDelete: Cascade)
+  practiceLocationId String
+  practiceLocation   PracticeLocation   @relation(fields: [practiceLocationId], references: [id], onDelete: Cascade)
+  price              Float
+  availabilitySlots  AvailabilitySlot[]
+  appointments       Appointment[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@unique([activityDoctorId, practiceLocationId])
+  @@index([activityDoctorId])
+  @@index([practiceLocationId])
+}
+
+model AvailabilitySlot {
+  id                       String                 @id @default(cuid())
+  activityDoctorLocationId String
+  activityDoctorLocation   ActivityDoctorLocation @relation(fields: [activityDoctorLocationId], references: [id], onDelete: Cascade)
+  day                      Int
+  startMinutes             Int
+  endMinutes               Int
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  @@index([activityDoctorLocationId])
+  @@index([day])
+}
+
+model Appointment {
+  id                       String                 @id @default(cuid())
+  patientAccountId         String
+  doctorAccountId          String
+  activityDoctorLocationId String
+  dateTime                 DateTime
+  status                   AppointmentStatus
+  price                    Float
+  patient                  Account                @relation("PatientAppointments", fields: [patientAccountId], references: [id], onDelete: Cascade)
+  doctor                   Account                @relation("DoctorAppointments", fields: [doctorAccountId], references: [id], onDelete: Cascade)
+  activityDoctorLocation   ActivityDoctorLocation @relation(fields: [activityDoctorLocationId], references: [id], onDelete: Cascade)
+  review                   Review?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  @@index([patientAccountId])
+  @@index([doctorAccountId])
+  @@index([activityDoctorLocationId])
+  @@index([dateTime])
+  @@index([status])
+}
+
+model OnCallRequest {
+  id               String           @id @default(cuid())
+  patientAccountId String
+  activityId       String
+  activity         Activity         @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  radius           Float
+  status           OnRequestStatus  @default(OPEN)
+  patient          Account          @relation(fields: [patientAccountId], references: [id], onDelete: Cascade)
+  proposals        OnCallProposal[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([patientAccountId])
+  @@index([status])
+  @@index([activityId])
+}
+
+model OnCallProposal {
+  id                 String           @id @default(cuid())
+  doctorAccountId    String
+  requestId          String
+  price              Float
+  doctor             Account          @relation(fields: [doctorAccountId], references: [id], onDelete: Cascade)
+  request            OnCallRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  practiceLocationId String
+  practiceLocation   PracticeLocation @relation(fields: [practiceLocationId], references: [id], onDelete: Cascade)
+  availableTimes     DateTime[]
+  status             OnProposalStatus @default(PROPOSAL_SENT)
+  payment            Payment?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([doctorAccountId])
+  @@index([requestId])
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  proposalId            String        @unique
+  proposal              OnCallProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  mercadoPagoPaymentId  String?       @unique
+  amount                Float
+  status                PaymentStatus @default(PENDING)
+  paymentMethod         String?
+  installments          Int           @default(1)
+  payerEmail            String
+  payerDocType          String
+  payerDocNumber        String
+  statusDetail          String?
+  transactionAmount     Float?
+  netReceivedAmount     Float?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([proposalId])
+  @@index([mercadoPagoPaymentId])
+}
+
+model Review {
+  id                String      @id @default(cuid())
+  appointmentId     String      @unique
+  reviewerAccountId String
+  revieweeAccountId String
+  rating            Int
+  comment           String
+  appointment       Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  reviewer          Account     @relation("SentReviews", fields: [reviewerAccountId], references: [id], onDelete: Cascade)
+  reviewee          Account     @relation("ReceivedReviews", fields: [revieweeAccountId], references: [id], onDelete: Cascade)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([reviewerAccountId])
+  @@index([revieweeAccountId])
+  @@index([rating])
+}
