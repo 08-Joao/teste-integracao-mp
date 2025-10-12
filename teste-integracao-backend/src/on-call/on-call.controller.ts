@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { OnCallService } from './on-call.service';
 import { CreateOnCallRequestDto, CreateOnCallProposalDto } from './dto/create-on-call.dto';
 import { UpdateOnCallRequestDto, UpdateOnCallProposalDto } from './dto/update-on-call.dto';
-import { OnRequestStatus } from '@prisma/client';
+import { OnRequestStatus } from 'generated/prisma';
 
 @ApiTags('on-call')
 @Controller('on-call')

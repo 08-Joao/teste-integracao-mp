@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOnCallRequestDto, CreateOnCallProposalDto } from './dto/create-on-call.dto';
 import { UpdateOnCallRequestDto, UpdateOnCallProposalDto } from './dto/update-on-call.dto';
-import { OnRequestStatus, OnProposalStatus } from '@prisma/client';
+import { OnRequestStatus, OnProposalStatus } from 'generated/prisma';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()

@@ -9,7 +9,7 @@ import { SigninDoctorDto } from './dto/signin-doctor.dto';
 import { SignupPatientDto } from './dto/signup-patient.dto';
 import { SignupDoctorDto } from './dto/signup-doctor.dto';
 import { comparePassword, hashPassword } from '../utils/bcrypt.util';
-import { AccountType } from '@prisma/client';
+import { AccountType } from 'generated/prisma';
 
 @Injectable()
 export class AuthService {

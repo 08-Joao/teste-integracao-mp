@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
-import { PaymentStatus } from '@prisma/client';
+import { PaymentStatus } from 'generated/prisma';
 
 @Injectable()
 export class PaymentsService {

@@ -1,4 +1,4 @@
-import { AccountType } from '@prisma/client';
+import { AccountType } from 'generated/prisma';
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateAccountDto {

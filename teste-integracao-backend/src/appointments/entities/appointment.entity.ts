@@ -1,4 +1,4 @@
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus } from 'generated/prisma';
 
 export class Appointment {
   id: string;

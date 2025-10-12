@@ -1,4 +1,4 @@
-import { OnRequestStatus, OnProposalStatus } from '@prisma/client';
+import { OnRequestStatus, OnProposalStatus } from 'generated/prisma';
 
 export class OnCallRequest {
   id: string;
