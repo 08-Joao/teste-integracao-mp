@@ -18,6 +18,7 @@ services:
     restart: always
     networks:
       - teste_integracao_network
+      - proxy_network
 
   teste_integracao_frontend:
     container_name: teste_integracao_frontend
@@ -36,7 +37,10 @@ services:
     restart: always
     networks:
       - teste_integracao_network
+      - proxy_network
 
 networks:
   teste_integracao_network:
     driver: bridge
+  proxy_network:
+    external: true
