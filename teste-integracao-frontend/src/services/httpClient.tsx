@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const backendRoute = axios.create({
-    baseURL: "http://localhost:4004/api",
+    baseURL: "http://localhost:4003/api",
     withCredentials: true
 })
 

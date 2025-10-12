@@ -1,0 +1,55 @@
+name: Deploy Teste Integração
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./teste-integracao-backend
+          file: ./teste-integracao-backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USER }}/teste-integracao-backend:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USER }}/teste-integracao-backend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USER }}/teste-integracao-backend:buildcache,mode=max
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./teste-integracao-frontend
+          file: ./teste-integracao-frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USER }}/teste-integracao-frontend:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USER }}/teste-integracao-frontend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USER }}/teste-integracao-frontend:buildcache,mode=max
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_KEY }}
+          script: |
+            cd ~/teste-integracao
+            docker-compose pull
+            docker-compose up -d
+            docker image prune -f
