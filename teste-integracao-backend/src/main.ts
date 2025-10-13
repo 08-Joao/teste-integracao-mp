@@ -40,7 +40,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: ['http://localhost:3003'],
+    origin: ['http://localhost:3003', 'https://integracaomp.tehkly.com'],
     credentials: true,
   });
 
