@@ -1,75 +1,87 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import Api from '@/services/Api';
 
-import Api from '@/services/Api'; // Ajuste o caminho conforme necessário
-
-// 1. Definir a tipagem do usuário com base no retorno da sua API
+// Definir a tipagem do usuário
 interface User {
     id: string;
     email: string;
     accountType: 'CLIENT' | 'PROFESSIONAL' | 'ADMIN';
     accountId: string;
-    profileId: string | null; // ID do DoctorProfile ou PatientProfile
+    profileId: string | null;
 }
 
-// 2. Definir a tipagem do valor que o contexto irá fornecer
+// Definir a tipagem do valor que o contexto irá fornecer
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
-    logout: () => void;
+    logout: () => Promise<void>;
 }
 
-// 3. Criar o Contexto
+// Criar o Contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 4. Criar o Provedor (Provider) do Contexto
+// Criar o Provedor (Provider) do Contexto
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const queryClient = useQueryClient();
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    // Usamos React Query para buscar e gerenciar o estado do usuário
-    const { data: user, isLoading, isError } = useQuery({
-        queryKey: ['user'],
-        queryFn: async () => {
-            const response = await Api.getMe();
-            if (!response || !response.data.authenticated) {
-                throw new Error("User not authenticated");
-            }
-            return response.data.user as User;
-        },
-        retry: false, // Não tenta novamente em caso de falha (ex: 401)
-        refetchOnWindowFocus: false,
-        staleTime: 5 * 60 * 1000, // 5 minutos - evita chamadas desnecessárias
-        gcTime: 10 * 60 * 1000, // 10 minutos - mantém em cache
-    });
+    // Buscar dados do usuário na montagem inicial
+    useEffect(() => {
+        let isMounted = true;
 
-    // Mutação para realizar o logout
-    const { mutate: signOut } = useMutation({
-        mutationFn: Api.signout,
-        onSuccess: () => {
-            queryClient.clear(); // Limpa todo o cache do React Query
+        const fetchUser = async () => {
+            try {
+                const response = await Api.getMe();
+                if (isMounted && response && response.data.authenticated) {
+                    setUser(response.data.user as User);
+                }
+            } catch (error) {
+                // Usuário não autenticado, mantém user como null
+                // O interceptor já vai redirecionar para /signin
+                if (isMounted) {
+                    setUser(null);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchUser();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // Função de logout
+    const logout = async () => {
+        try {
+            await Api.signout();
+        } catch (error) {
+            console.error('Erro no logout:', error);
+        } finally {
+            setUser(null);
             router.push('/signin');
-        },
-        onError: () => {
-            toast.error('Não foi possível fazer logout. Tente novamente.');
-        },
-    });
+        }
+    };
 
     // Montamos o valor que será disponibilizado para toda a aplicação
     const value: AuthContextType = {
-        user: user || null,
+        user,
         isLoading,
-        logout: signOut,
+        logout,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// 5. Criar um hook customizado para facilitar o uso do contexto
+// Criar um hook customizado para facilitar o uso do contexto
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {

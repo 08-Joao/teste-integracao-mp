@@ -127,7 +127,7 @@ function OnCallRequestCard({ request }: OnCallRequestCardProps) {
         console.log('📍 [Proposals] Fetching locations for doctor:', user.profileId);
         console.log('📍 [Proposals] Activity needed:', request.activityId);
         
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4003';
         const url = `${backendUrl}/api/activity-doctor-locations?doctorProfileId=${user.profileId}`;
         console.log('📍 [Proposals] Full URL:', url);
         

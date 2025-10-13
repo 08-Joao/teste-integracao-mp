@@ -5,5 +5,4 @@ const backendRoute = axios.create({
     withCredentials: true
 })
 
-
 export default backendRoute

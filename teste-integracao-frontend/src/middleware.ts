@@ -5,26 +5,28 @@ import type { NextRequest } from 'next/server'
 const AUTH_COOKIE_NAME = 'accessToken'; // <-- Altere aqui se o nome do seu cookie for diferente
 
 // 1. Especifique as rotas públicas (que não exigem login)
-const GUEST_ROUTES = ['/signin', '/signup'];
+const PUBLIC_ROUTES = ['/signin', '/signup'];
 
-// 2. Especifique as rotas que exigem login
-const PROTECTED_ROUTES = ['/dashboard']; // Adicione outras rotas protegidas aqui, ex: '/profile'
+// 2. Função para verificar se a rota é pública
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get(AUTH_COOKIE_NAME);
+  const isPublic = isPublicRoute(pathname);
 
   // Lógica de redirecionamento para usuários LOGADOS
-  // Se o cookie de sessão existe e o usuário tenta acessar uma rota de convidado...
-  if (sessionCookie && GUEST_ROUTES.includes(pathname)) {
+  // Se o cookie de sessão existe e o usuário tenta acessar uma rota pública...
+  if (sessionCookie && isPublic) {
     // ...redireciona para o dashboard.
-    // A URL base é obtida de `request.url` para funcionar tanto em localhost quanto em produção.
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Lógica de redirecionamento para usuários DESLOGADOS
-  // Se o cookie não existe e o usuário tenta acessar uma rota protegida...
-  if (!sessionCookie && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+  // Se o cookie não existe e o usuário tenta acessar uma rota privada...
+  if (!sessionCookie && !isPublic) {
     // ...redireciona para a página de login.
     return NextResponse.redirect(new URL('/signin', request.url));
   }

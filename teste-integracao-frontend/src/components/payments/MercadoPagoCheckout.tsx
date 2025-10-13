@@ -118,7 +118,7 @@ export function MercadoPagoCheckout({
         throw new Error('Failed to create card token');
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4003';
       const response = await fetch(`${backendUrl}/api/payments/proposal/${proposalId}/process`, {
         method: 'POST',
         headers: {
@@ -165,7 +165,7 @@ export function MercadoPagoCheckout({
     setIsProcessing(true);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4003';
       const response = await fetch(`${backendUrl}/api/payments/proposal/${proposalId}/process-pix`, {
         method: 'POST',
         headers: {

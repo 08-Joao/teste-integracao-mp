@@ -15,7 +15,7 @@ export default function PatientDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4003';
         const response = await fetch(`${backendUrl}/api/patients/stats`, {
           credentials: 'include',
         });

@@ -12,7 +12,7 @@ class NotificationService {
       return;
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4003';
 
     console.log('🔌 [NotificationService] Connecting to:', `${backendUrl}/notifications`);
     console.log('🔌 [NotificationService] Using httpOnly cookie for auth');

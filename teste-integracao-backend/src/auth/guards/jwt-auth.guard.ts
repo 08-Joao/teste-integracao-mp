@@ -13,6 +13,7 @@ export class JwtAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
+    const response = context.switchToHttp().getResponse();
     
     // Extract token from httpOnly cookie
     const token = request.cookies?.accessToken;
@@ -29,6 +30,13 @@ export class JwtAuthGuard implements CanActivate {
       // Attach user payload to request object
       request['user'] = payload;
     } catch (error) {
+      // Limpa o cookie inválido/expirado
+      response.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
       throw new UnauthorizedException('Invalid or expired token');
     }
 
