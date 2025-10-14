@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // O nome do seu cookie de autenticação
-const AUTH_COOKIE_NAME = 'accessToken'; // <-- Altere aqui se o nome do seu cookie for diferente
+const AUTH_COOKIE_NAME = 'accessToken';
 
 // 1. Especifique as rotas públicas (que não exigem login)
-const PUBLIC_ROUTES = ['/signin', '/signup'];
+const PUBLIC_ROUTES = ['/signin', '/signup', '/forgot-password', '/reset-password'];
 
 // 2. Função para verificar se a rota é pública
 function isPublicRoute(pathname: string): boolean {
