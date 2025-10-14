@@ -15,6 +15,9 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - SALT_ROUNDS=${SALT_ROUNDS}
+      - DATE_TIMEZONE=${DATE_TIMEZONE}
     restart: always
     networks:
       - teste_integracao_network
