@@ -23,6 +23,9 @@ async function bootstrap() {
   await app.getHttpAdapter().getInstance().register(fastifyCors as any, {
     origin: ['http://localhost:3003', 'https://integracaomp.tehkly.com'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Set-Cookie'],
   });
 
   await app.getHttpAdapter().getInstance().register(fastifyCookie as any, {
