@@ -30,12 +30,15 @@ services:
     build:
       context: ./teste-integracao-frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://api-integracaomp.tehkly.com
+        - NEXT_PUBLIC_BACKEND_URL=https://api-integracaomp.tehkly.com
+        - NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY}
     ports:
       - "3003:3003"
     environment:
       - NODE_ENV=production
       - PORT=3003
-      - NEXT_PUBLIC_API_URL=http://teste_integracao_backend:4003
     depends_on:
       - teste_integracao_backend
     restart: always
