@@ -56,13 +56,24 @@ export class AuthController {
       const result = await this.authService.signupPatient(signupPatientDto);
       
       // Set httpOnly cookie with JWT token (usando reply.raw para acessar o Fastify nativo)
-      reply.setCookie('accessToken', result.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60, // 7 days in seconds (não milissegundos!)
-        path: '/',
-      });
+      const isProd = process.env.NODE_ENV === 'production';
+      const cookieOptions = isProd
+        ? {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none' as const,
+            domain: '.tehkly.com',
+            maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+            path: '/',
+          }
+        : {
+            httpOnly: true,
+            sameSite: 'lax' as const,
+            maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+            path: '/',
+          };
+      
+      reply.setCookie('accessToken', result.token, cookieOptions);
 
       return {
         message: 'Patient account created successfully',
@@ -112,13 +123,24 @@ export class AuthController {
     const result = await this.authService.signupDoctor(signupDoctorDto);
     
     // Set httpOnly cookie with JWT token
-    reply.setCookie('accessToken', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-      path: '/',
-    });
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieOptions = isProd
+      ? {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none' as const,
+          domain: '.tehkly.com',
+          maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+          path: '/',
+        }
+      : {
+          httpOnly: true,
+          sameSite: 'lax' as const,
+          maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+          path: '/',
+        };
+    
+    reply.setCookie('accessToken', result.token, cookieOptions);
 
     return {
       message: 'Doctor account created successfully',
@@ -163,13 +185,24 @@ export class AuthController {
     const result = await this.authService.signinPatient(signinPatientDto);
     
     // Set httpOnly cookie with JWT token
-    reply.setCookie('accessToken', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-      path: '/',
-    });
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieOptions = isProd
+      ? {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none' as const,
+          domain: '.tehkly.com',
+          maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+          path: '/',
+        }
+      : {
+          httpOnly: true,
+          sameSite: 'lax' as const,
+          maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+          path: '/',
+        };
+    
+    reply.setCookie('accessToken', result.token, cookieOptions);
 
     return {
       message: 'Patient signed in successfully',
@@ -215,13 +248,24 @@ export class AuthController {
     const result = await this.authService.signinDoctor(signinDoctorDto);
     
     // Set httpOnly cookie with JWT token
-    reply.setCookie('accessToken', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-      path: '/',
-    });
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieOptions = isProd
+      ? {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none' as const,
+          domain: '.tehkly.com',
+          maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+          path: '/',
+        }
+      : {
+          httpOnly: true,
+          sameSite: 'lax' as const,
+          maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+          path: '/',
+        };
+    
+    reply.setCookie('accessToken', result.token, cookieOptions);
 
     return {
       message: 'Doctor signed in successfully',
@@ -300,12 +344,22 @@ export class AuthController {
   })
   async signout(@Res({ passthrough: true }) reply: FastifyReply) {
     // Clear the httpOnly cookie
-    reply.clearCookie('accessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-    });
+    const isProd = process.env.NODE_ENV === 'production';
+    const clearOptions = isProd
+      ? {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none' as const,
+          domain: '.tehkly.com',
+          path: '/',
+        }
+      : {
+          httpOnly: true,
+          sameSite: 'lax' as const,
+          path: '/',
+        };
+    
+    reply.clearCookie('accessToken', clearOptions);
 
     return {
       message: 'Signed out successfully',
