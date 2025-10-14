@@ -44,10 +44,10 @@ async function bootstrap() {
 
 
   const httpAdapterHost = app.get(HttpAdapterHost);
-  app.useGlobalFilters(
-    new AllExceptionsFilter(httpAdapterHost),
-    new PrismaExceptionFilter(),
-  );
+  // app.useGlobalFilters(
+  //   new AllExceptionsFilter(httpAdapterHost),
+  //   new PrismaExceptionFilter(),
+  // );
 
   // Swagger Configuration
   const config = new DocumentBuilder()
@@ -84,5 +84,7 @@ async function bootstrap() {
   });
 
   await app.listen(process.env.PORT ?? 4003);
+  console.log(`🚀 Application is running on: http://localhost:${process.env.PORT ?? 4000}`);
+  console.log(`📚 Swagger documentation: http://localhost:${process.env.PORT ?? 4000}/api/docs`);
 }
 bootstrap();
