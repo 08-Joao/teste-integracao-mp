@@ -24,8 +24,10 @@ async function bootstrap() {
     origin: ['http://localhost:3003', 'https://integracaomp.tehkly.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
     exposedHeaders: ['Set-Cookie'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   await app.getHttpAdapter().getInstance().register(fastifyCookie as any, {
@@ -44,10 +46,10 @@ async function bootstrap() {
 
 
   const httpAdapterHost = app.get(HttpAdapterHost);
-  // app.useGlobalFilters(
-  //   new AllExceptionsFilter(httpAdapterHost),
-  //   new PrismaExceptionFilter(),
-  // );
+  app.useGlobalFilters(
+    new AllExceptionsFilter(httpAdapterHost),
+    new PrismaExceptionFilter(),
+  );
 
   // Swagger Configuration
   const config = new DocumentBuilder()
@@ -83,8 +85,8 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(process.env.PORT ?? 4003);
-  console.log(`🚀 Application is running on: http://localhost:${process.env.PORT ?? 4000}`);
-  console.log(`📚 Swagger documentation: http://localhost:${process.env.PORT ?? 4000}/api/docs`);
+  await app.listen(process.env.PORT ?? 4003, '0.0.0.0');
+  console.log(`🚀 Application is running on: http://0.0.0.0:${process.env.PORT ?? 4003}`);
+  console.log(`📚 Swagger documentation: http://localhost:${process.env.PORT ?? 4003}/api/docs`);
 }
 bootstrap();
