@@ -7,6 +7,7 @@ import { PrismaExceptionFilter } from './common/Filters/prismaFilter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import fastifyCookie from '@fastify/cookie';
+import fastifyCors from '@fastify/cors';
 
 
 // Load environment variables
@@ -17,6 +18,12 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
+
+  // Register CORS plugin for Fastify
+  await app.getHttpAdapter().getInstance().register(fastifyCors as any, {
+    origin: ['http://localhost:3003', 'https://integracaomp.tehkly.com'],
+    credentials: true,
+  });
 
   await app.getHttpAdapter().getInstance().register(fastifyCookie as any, {
     secret: process.env.JWT_SECRET, // use uma variável de ambiente para isso em produção!
@@ -38,11 +45,6 @@ async function bootstrap() {
     new AllExceptionsFilter(httpAdapterHost),
     new PrismaExceptionFilter(),
   );
-
-  app.enableCors({
-    origin: ['http://localhost:3003', 'https://integracaomp.tehkly.com'],
-    credentials: true,
-  });
 
   // Swagger Configuration
   const config = new DocumentBuilder()
