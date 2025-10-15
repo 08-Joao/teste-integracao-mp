@@ -212,6 +212,20 @@ export class PaymentsService {
       
       console.log('💰 [Payment] Amount:', { original: proposal.price, formatted: amount });
       
+      // Validar valor mínimo para cartão de crédito (R$ 1,00)
+      if (amount < 1) {
+        throw new BadRequestException(
+          `O valor mínimo para pagamento com cartão é R$ 1,00. Valor atual: R$ ${amount.toFixed(2)}`
+        );
+      }
+      
+      console.log('💳 [Payment] Payment data:', {
+        payment_method_id: paymentData.payment_method_id,
+        token: paymentData.token ? 'present' : 'missing',
+        installments: paymentData.installments,
+        email: paymentData.payer.email,
+      });
+      
       // Criar pagamento no Mercado Pago
       const paymentResponse = await this.payment.create({
         body: {
