@@ -222,6 +222,23 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     }
   }
 
+  // Notificar paciente que o pagamento foi aprovado
+  notifyPaymentApproved(patientAccountId: string, paymentData: any) {
+    console.log('💰 [Gateway] Notifying payment approved to:', patientAccountId);
+    const client = this.connectedClients.get(patientAccountId);
+    if (client) {
+      client.emit('payment-approved', {
+        type: 'PAYMENT_APPROVED',
+        message: 'Seu pagamento foi aprovado!',
+        data: paymentData,
+        timestamp: new Date().toISOString(),
+      });
+      console.log('✅ [Gateway] Payment notification sent');
+    } else {
+      console.log('⚠️ [Gateway] Patient not connected:', patientAccountId);
+    }
+  }
+
   // Método para teste (opcional)
   @SubscribeMessage('ping')
   handlePing(@ConnectedSocket() client: AuthenticatedSocket) {

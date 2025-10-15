@@ -1,15 +1,20 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { PaymentStatus } from 'generated/prisma';
 import * as crypto from 'crypto';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class PaymentsService {
   private client: MercadoPagoConfig;
   private payment: Payment;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private notificationsGateway: NotificationsGateway,
+  ) {
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     
     if (!accessToken) {
@@ -35,6 +40,85 @@ export class PaymentsService {
       },
     });
     this.payment = new Payment(this.client);
+  }
+
+  /**
+   * Verifica e valida pagamento existente antes de criar novo
+   * Retorna true se pode prosseguir, false se já está pago
+   */
+  private async checkAndValidateExistingPayment(proposalId: string): Promise<boolean> {
+    const existingPayment = await this.prisma.payment.findUnique({
+      where: { proposalId },
+    });
+
+    if (!existingPayment) {
+      return true; // Não existe, pode criar
+    }
+
+    // Se já está aprovado no banco, não permitir
+    if (existingPayment.status === 'APPROVED') {
+      throw new BadRequestException('This proposal already has an approved payment');
+    }
+    
+    // Se existe pagamento pendente, verificar status real no Mercado Pago
+    if (existingPayment.mercadoPagoPaymentId) {
+      try {
+        console.log('🔍 [Payment] Checking payment status in Mercado Pago:', existingPayment.mercadoPagoPaymentId);
+        const mpPayment = await this.payment.get({ id: existingPayment.mercadoPagoPaymentId });
+        
+        if (mpPayment.status === 'approved') {
+          // Pagamento foi aprovado no MP mas não atualizou no banco ainda
+          console.log('✅ [Payment] Payment was approved in MP, updating database');
+          
+          await this.prisma.payment.update({
+            where: { id: existingPayment.id },
+            data: {
+              status: 'APPROVED',
+              statusDetail: mpPayment.status_detail || null,
+              paidAt: new Date(),
+              netReceivedAmount: mpPayment.transaction_details?.net_received_amount || null,
+            },
+          });
+          
+          // Confirmar proposta
+          await this.prisma.onCallProposal.update({
+            where: { id: proposalId },
+            data: { status: 'CONFIRMED' },
+          });
+          
+          throw new BadRequestException('This proposal already has an approved payment');
+        }
+        
+        console.log('💳 [Payment] MP Payment status:', mpPayment.status);
+        
+        // Se não está aprovado, pode deletar e criar novo
+        if (mpPayment.status === 'rejected' || mpPayment.status === 'cancelled' || mpPayment.status === 'pending') {
+          console.log('⚠️ [Payment] Removing previous failed/pending payment attempt');
+          await this.prisma.payment.delete({
+            where: { id: existingPayment.id },
+          });
+        }
+      } catch (error) {
+        // Se não encontrar no MP (404), pode deletar
+        if (error.status === 404) {
+          console.log('⚠️ [Payment] Payment not found in MP, removing from database');
+          await this.prisma.payment.delete({
+            where: { id: existingPayment.id },
+          });
+        } else {
+          console.error('❌ [Payment] Error checking MP payment:', error);
+          throw error;
+        }
+      }
+    } else {
+      // Se não tem ID do MP ainda, pode deletar
+      console.log('⚠️ [Payment] Removing payment without MP ID');
+      await this.prisma.payment.delete({
+        where: { id: existingPayment.id },
+      });
+    }
+
+    return true; // Pode prosseguir
   }
 
   /**
@@ -97,22 +181,8 @@ export class PaymentsService {
   async createPaymentForProposal(proposalId: string, paymentData: any) {
     console.log('💳 [Payment] Creating payment for proposal:', proposalId);
 
-    // Verificar se já existe pagamento para esta proposta
-    const existingPayment = await this.prisma.payment.findUnique({
-      where: { proposalId },
-    });
-
-    if (existingPayment) {
-      if (existingPayment.status === 'APPROVED') {
-        throw new BadRequestException('This proposal already has an approved payment');
-      }
-      
-      // Se existe mas não foi aprovado, permitir nova tentativa deletando o anterior
-      console.log('⚠️ [Payment] Removing previous failed payment attempt');
-      await this.prisma.payment.delete({
-        where: { id: existingPayment.id },
-      });
-    }
+    // Verificar e validar pagamento existente
+    await this.checkAndValidateExistingPayment(proposalId);
 
     // Buscar proposta
     const proposal = await this.prisma.onCallProposal.findUnique({
@@ -240,13 +310,23 @@ export class PaymentsService {
           data: { status: 'CONFIRMED' },
         });
 
-        // Fechar request
+        // Fechar request e buscar dados do paciente
         const proposal = await this.prisma.onCallProposal.findUnique({
           where: { id: proposalId },
-          include: { request: true },
+          include: { 
+            request: true,
+          },
         });
 
         if (proposal) {
+          // Buscar request com patient (account do paciente)
+          const request = await this.prisma.onCallRequest.findUnique({
+            where: { id: proposal.requestId },
+            include: {
+              patient: true,
+            }
+          });
+
           await this.prisma.onCallRequest.update({
             where: { id: proposal.requestId },
             data: { status: 'CLOSED' },
@@ -263,6 +343,19 @@ export class PaymentsService {
           });
 
           console.log('✅ [Payment] Proposal confirmed, request closed, and other proposals cancelled');
+
+          // Notificar paciente via WebSocket
+          if (request?.patient) {
+            this.notificationsGateway.notifyPaymentApproved(
+              request.patient.id,
+              {
+                proposalId,
+                paymentId,
+                amount: paymentInfo.transaction_amount,
+                status: 'approved',
+              }
+            );
+          }
         }
       }
 
@@ -276,22 +369,8 @@ export class PaymentsService {
   async createPixPaymentForProposal(proposalId: string, paymentData: any) {
     console.log('💳 [Payment] Creating PIX payment for proposal:', proposalId);
 
-    // Verificar se já existe pagamento para esta proposta
-    const existingPayment = await this.prisma.payment.findUnique({
-      where: { proposalId },
-    });
-
-    if (existingPayment) {
-      if (existingPayment.status === 'APPROVED') {
-        throw new BadRequestException('This proposal already has an approved payment');
-      }
-      
-      // Se existe mas não foi aprovado, permitir nova tentativa deletando o anterior
-      console.log('⚠️ [Payment] Removing previous failed payment attempt');
-      await this.prisma.payment.delete({
-        where: { id: existingPayment.id },
-      });
-    }
+    // Verificar e validar pagamento existente
+    await this.checkAndValidateExistingPayment(proposalId);
 
     // Buscar proposta
     const proposal = await this.prisma.onCallProposal.findUnique({

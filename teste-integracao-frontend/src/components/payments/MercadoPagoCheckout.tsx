@@ -12,6 +12,8 @@ import Script from 'next/script';
 import { CreditCardPreview } from './CreditCardPreview';
 import { PixQRCode } from './PixQRCode';
 import { maskCPF, maskCardNumber, maskExpirationDate, maskCVV, unmask } from '@/lib/utils/masks';
+import { notificationService } from '@/services/NotificationService';
+import { CheckCircle2 } from 'lucide-react';
 
 interface MercadoPagoCheckoutProps {
   proposalId: string;
@@ -41,6 +43,7 @@ export function MercadoPagoCheckout({
   const [isCVVFocused, setIsCVVFocused] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
   const [detectedPaymentMethod, setDetectedPaymentMethod] = useState<string | null>(null);
+  const [paymentApproved, setPaymentApproved] = useState(false);
 
   const [formData, setFormData] = useState({
     cardNumber: '',
@@ -60,6 +63,29 @@ export function MercadoPagoCheckout({
       console.log('💳 [MercadoPago] SDK initialized');
     }
   }, [scriptLoaded]);
+
+  // Escutar evento de pagamento aprovado via WebSocket
+  useEffect(() => {
+    const unsubscribe = notificationService.onPaymentApproved((data) => {
+      console.log('💰 [MercadoPago] Payment approved event received:', data);
+      
+      // Verificar se é o pagamento desta proposta
+      if (data.proposalId === proposalId) {
+        setPaymentApproved(true);
+        setIsProcessing(false);
+        
+        // Chamar onSuccess após 2 segundos para dar tempo de ver a mensagem
+        setTimeout(() => {
+          onSuccess();
+        }, 2000);
+      }
+    });
+
+    // Cleanup
+    return () => {
+      unsubscribe();
+    };
+  }, [proposalId, onSuccess]);
 
   const detectPaymentMethod = async (cardNumber: string) => {
     if (!mp || cardNumber.length < 6) {
@@ -247,6 +273,22 @@ export function MercadoPagoCheckout({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Mostrar mensagem de sucesso quando pagamento for aprovado */}
+          {paymentApproved && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <CheckCircle2 className="w-16 h-16 text-green-500" />
+              <h3 className="text-2xl font-bold text-green-600">Pagamento Aprovado!</h3>
+              <p className="text-gray-600 text-center">
+                Seu pagamento foi confirmado com sucesso.
+                <br />
+                Redirecionando...
+              </p>
+            </div>
+          )}
+
+          {/* Mostrar formulário apenas se pagamento não foi aprovado */}
+          {!paymentApproved && (
+            <>
           <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="credit_card">Cartão de Crédito</TabsTrigger>
@@ -433,6 +475,8 @@ export function MercadoPagoCheckout({
               )}
             </TabsContent>
           </Tabs>
+            </>
+          )}
         </CardContent>
       </Card>
     </>

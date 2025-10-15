@@ -5,6 +5,7 @@ import { useNotificationStore } from '@/stores/notification-store';
 class NotificationService {
   private socket: Socket | null = null;
   private token: string | null = null;
+  private paymentApprovedCallbacks: ((data: any) => void)[] = [];
 
   connect() {
     if (this.socket?.connected) {
@@ -100,6 +101,20 @@ class NotificationService {
       });
     });
 
+    this.socket.on('payment-approved', (notification) => {
+      console.log('💰 [NotificationService] PAYMENT APPROVED received:', notification);
+      
+      // Chamar todos os callbacks registrados
+      this.paymentApprovedCallbacks.forEach(callback => {
+        callback(notification.data);
+      });
+      
+      toast.success(notification.message, {
+        description: 'Seu pagamento foi confirmado!',
+        duration: 5000,
+      });
+    });
+
     this.socket.on('connect_error', (error) => {
       console.error('Connection error:', error);
     });
@@ -118,6 +133,16 @@ class NotificationService {
 
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  // Registrar callback para quando pagamento for aprovado
+  onPaymentApproved(callback: (data: any) => void) {
+    this.paymentApprovedCallbacks.push(callback);
+    
+    // Retornar função para remover o callback
+    return () => {
+      this.paymentApprovedCallbacks = this.paymentApprovedCallbacks.filter(cb => cb !== callback);
+    };
   }
 }
 
