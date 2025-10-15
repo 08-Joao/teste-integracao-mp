@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { PaymentStatus } from 'generated/prisma';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class PaymentsService {
@@ -34,6 +35,63 @@ export class PaymentsService {
       },
     });
     this.payment = new Payment(this.client);
+  }
+
+  /**
+   * Valida a assinatura do webhook do Mercado Pago
+   * Documentação: https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks
+   */
+  async validateWebhookSignature(
+    signature: string,
+    requestId: string,
+    dataId: string,
+  ): Promise<boolean> {
+    try {
+      const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+      
+      if (!secret) {
+        console.warn('⚠️ [Webhook] MERCADO_PAGO_WEBHOOK_SECRET not configured, skipping validation');
+        return true; // Em desenvolvimento, permitir sem validação
+      }
+
+      // O header x-signature vem no formato: "ts=123456789,v1=hash"
+      const parts = signature.split(',');
+      const tsMatch = parts.find(p => p.startsWith('ts='));
+      const v1Match = parts.find(p => p.startsWith('v1='));
+
+      if (!tsMatch || !v1Match) {
+        console.error('❌ [Webhook] Invalid signature format');
+        return false;
+      }
+
+      const ts = tsMatch.split('=')[1];
+      const hash = v1Match.split('=')[1];
+
+      // Criar a string de manifesto conforme documentação do MP
+      // Formato: id + request-id + ts
+      const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+
+      console.log('🔐 [Webhook] Manifest:', manifest);
+
+      // Gerar HMAC SHA256
+      const hmac = crypto.createHmac('sha256', secret);
+      hmac.update(manifest);
+      const generatedHash = hmac.digest('hex');
+
+      console.log('🔐 [Webhook] Generated hash:', generatedHash);
+      console.log('🔐 [Webhook] Received hash:', hash);
+
+      // Comparar hashes de forma segura
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(generatedHash),
+        Buffer.from(hash)
+      );
+
+      return isValid;
+    } catch (error) {
+      console.error('❌ [Webhook] Error validating signature:', error);
+      return false;
+    }
   }
 
   async createPaymentForProposal(proposalId: string, paymentData: any) {

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, Query, HttpCode } from '@nestjs/common';
+import { Controller, Post, Body, Param, Query, HttpCode, Headers, UnauthorizedException, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 
@@ -33,8 +33,27 @@ export class PaymentsController {
   async handleWebhook(
     @Query('id') paymentId: string,
     @Query('topic') topic: string,
+    @Headers('x-signature') signature: string,
+    @Headers('x-request-id') requestId: string,
+    @Req() request: any,
   ) {
     console.log('🔔 [Webhook] Received:', { paymentId, topic });
+    console.log('🔐 [Webhook] Signature:', signature);
+    console.log('🔐 [Webhook] Request ID:', requestId);
+    
+    // Validar assinatura do webhook
+    const isValid = await this.paymentsService.validateWebhookSignature(
+      signature,
+      requestId,
+      paymentId,
+    );
+    
+    if (!isValid) {
+      console.error('❌ [Webhook] Invalid signature');
+      throw new UnauthorizedException('Invalid webhook signature');
+    }
+    
+    console.log('✅ [Webhook] Signature validated');
     
     if (topic === 'payment') {
       return this.paymentsService.handlePaymentWebhook(paymentId);
