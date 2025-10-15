@@ -159,9 +159,16 @@ export function MercadoPagoCheckout({
         identificationNumber: unmask(formData.docNumber),
       };
 
-      console.log('💳 [MercadoPago] Creating card token...');
+      console.log('💳 [MercadoPago] Creating card token with data:', {
+        cardNumber: `****${unmask(formData.cardNumber).slice(-4)}`,
+        cardholderName: formData.cardholderName,
+        expirationMonth: month,
+        expirationYear: `20${year}`,
+        cpf: `***${unmask(formData.docNumber).slice(-3)}`,
+      });
+      
       const token = await mp.createCardToken(cardData);
-      console.log('💳 [MercadoPago] Token created:', token.id);
+      console.log('💳 [MercadoPago] Token created successfully:', token.id);
       
       return token.id;
     } catch (error) {
