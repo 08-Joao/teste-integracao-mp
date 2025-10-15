@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { OnRequestStatus } from '@/models/enums/on-call-status.enum';
 import { OnCallRequest, useAcceptProposal, useRejectProposal } from '@/lib/hooks/use-on-calls';
 import { useState } from 'react';
-import { MapPin, Clock, User } from 'lucide-react';
+import { MapPin, Clock, User, QrCode } from 'lucide-react';
 import { MercadoPagoCheckout } from '@/components/payments/MercadoPagoCheckout';
 import {
   Dialog,
@@ -39,6 +39,7 @@ const StatusBadge = ({ status }: { status: OnRequestStatus }) => {
 function ProposalCard({ proposal, requestStatus }: { proposal: any; requestStatus: string }) {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [hasPendingPayment, setHasPendingPayment] = useState(false);
   const { mutate: acceptProposal, isPending: isAccepting } = useAcceptProposal();
   const { mutate: rejectProposal, isPending: isRejecting } = useRejectProposal();
 
@@ -60,11 +61,17 @@ function ProposalCard({ proposal, requestStatus }: { proposal: any; requestStatu
     // Após pagamento aprovado, aceitar a proposta
     acceptProposal({ proposalId: proposal.id, selectedTime: selectedTime! });
     setShowPaymentModal(false);
+    setHasPendingPayment(false);
   };
 
   const handlePaymentError = (error: any) => {
     console.error('Payment error:', error);
     setShowPaymentModal(false);
+  };
+
+  const handlePixGenerated = (pixData: any) => {
+    console.log('PIX gerado:', pixData);
+    setHasPendingPayment(true);
   };
 
   const handleReject = () => {
@@ -184,6 +191,21 @@ function ProposalCard({ proposal, requestStatus }: { proposal: any; requestStatu
         </div>
       )}
 
+      {/* Botão para reabrir PIX pendente */}
+      {hasPendingPayment && !isDisabled && (
+        <div className="pt-2 border-t">
+          <Button 
+            size="sm" 
+            variant="secondary" 
+            className="w-full"
+            onClick={() => setShowPaymentModal(true)}
+          >
+            <QrCode className="w-4 h-4 mr-2" />
+            Ver QR Code do PIX
+          </Button>
+        </div>
+      )}
+
       {/* Modal de Pagamento */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -199,6 +221,7 @@ function ProposalCard({ proposal, requestStatus }: { proposal: any; requestStatu
             description={`Consulta - Dr(a). ${proposal.doctor?.user?.name}`}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
+            onPixGenerated={handlePixGenerated}
           />
         </DialogContent>
       </Dialog>

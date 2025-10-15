@@ -21,6 +21,7 @@ interface MercadoPagoCheckoutProps {
   description: string;
   onSuccess: () => void;
   onError: (error: any) => void;
+  onPixGenerated?: (pixData: any) => void;
 }
 
 declare global {
@@ -35,6 +36,7 @@ export function MercadoPagoCheckout({
   description,
   onSuccess,
   onError,
+  onPixGenerated,
 }: MercadoPagoCheckoutProps) {
   const [mp, setMp] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -245,6 +247,11 @@ export function MercadoPagoCheckout({
       if (result.qr_code) {
         setPixData(result);
         toast.success('QR Code PIX gerado!');
+        
+        // Notificar componente pai que PIX foi gerado
+        if (onPixGenerated) {
+          onPixGenerated(result);
+        }
       }
     } catch (error: any) {
       console.error('❌ [Payment] Error:', error);
