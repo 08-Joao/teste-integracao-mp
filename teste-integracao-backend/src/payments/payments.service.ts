@@ -207,10 +207,15 @@ export class PaymentsService {
     }
 
     try {
+      // Garantir que o valor tenha no máximo 2 casas decimais
+      const amount = Number(parseFloat(proposal.price.toString()).toFixed(2));
+      
+      console.log('💰 [Payment] Amount:', { original: proposal.price, formatted: amount });
+      
       // Criar pagamento no Mercado Pago
       const paymentResponse = await this.payment.create({
         body: {
-          transaction_amount: proposal.price,
+          transaction_amount: amount,
           description: `${proposal.request.activity.name} - Dr(a). ${proposal.doctor.user.name}`,
           payment_method_id: paymentData.payment_method_id,
           payer: {
@@ -434,10 +439,15 @@ export class PaymentsService {
     }
 
     try {
+      // Garantir que o valor tenha no máximo 2 casas decimais
+      const amount = Number(parseFloat(proposal.price.toString()).toFixed(2));
+      
+      console.log('💰 [Payment PIX] Amount:', { original: proposal.price, formatted: amount });
+      
       // Criar pagamento PIX no Mercado Pago
       const paymentResponse = await this.payment.create({
         body: {
-          transaction_amount: proposal.price,
+          transaction_amount: amount,
           description: `${proposal.request.activity.name} - Dr(a). ${proposal.doctor.user.name}`,
           payment_method_id: 'pix',
           payer: {
