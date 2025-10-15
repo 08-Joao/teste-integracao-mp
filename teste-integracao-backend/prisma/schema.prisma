@@ -274,6 +274,7 @@ model Payment {
 
   @@index([proposalId])
   @@index([mercadoPagoPaymentId])
+  @@index([status])
 }
 
 model Review {

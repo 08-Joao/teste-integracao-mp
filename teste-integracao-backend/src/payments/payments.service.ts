@@ -97,6 +97,23 @@ export class PaymentsService {
   async createPaymentForProposal(proposalId: string, paymentData: any) {
     console.log('💳 [Payment] Creating payment for proposal:', proposalId);
 
+    // Verificar se já existe pagamento para esta proposta
+    const existingPayment = await this.prisma.payment.findUnique({
+      where: { proposalId },
+    });
+
+    if (existingPayment) {
+      if (existingPayment.status === 'APPROVED') {
+        throw new BadRequestException('This proposal already has an approved payment');
+      }
+      
+      // Se existe mas não foi aprovado, permitir nova tentativa deletando o anterior
+      console.log('⚠️ [Payment] Removing previous failed payment attempt');
+      await this.prisma.payment.delete({
+        where: { id: existingPayment.id },
+      });
+    }
+
     // Buscar proposta
     const proposal = await this.prisma.onCallProposal.findUnique({
       where: { id: proposalId },
@@ -258,6 +275,23 @@ export class PaymentsService {
 
   async createPixPaymentForProposal(proposalId: string, paymentData: any) {
     console.log('💳 [Payment] Creating PIX payment for proposal:', proposalId);
+
+    // Verificar se já existe pagamento para esta proposta
+    const existingPayment = await this.prisma.payment.findUnique({
+      where: { proposalId },
+    });
+
+    if (existingPayment) {
+      if (existingPayment.status === 'APPROVED') {
+        throw new BadRequestException('This proposal already has an approved payment');
+      }
+      
+      // Se existe mas não foi aprovado, permitir nova tentativa deletando o anterior
+      console.log('⚠️ [Payment] Removing previous failed payment attempt');
+      await this.prisma.payment.delete({
+        where: { id: existingPayment.id },
+      });
+    }
 
     // Buscar proposta
     const proposal = await this.prisma.onCallProposal.findUnique({
