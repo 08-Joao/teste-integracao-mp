@@ -40,6 +40,7 @@ function ProposalCard({ proposal, requestStatus }: { proposal: any; requestStatu
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [hasPendingPayment, setHasPendingPayment] = useState(false);
+  const [savedPixData, setSavedPixData] = useState<any>(null);
   const { mutate: acceptProposal, isPending: isAccepting } = useAcceptProposal();
   const { mutate: rejectProposal, isPending: isRejecting } = useRejectProposal();
 
@@ -71,6 +72,7 @@ function ProposalCard({ proposal, requestStatus }: { proposal: any; requestStatu
 
   const handlePixGenerated = (pixData: any) => {
     console.log('PIX gerado:', pixData);
+    setSavedPixData(pixData);
     setHasPendingPayment(true);
   };
 
@@ -222,6 +224,7 @@ function ProposalCard({ proposal, requestStatus }: { proposal: any; requestStatu
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
             onPixGenerated={handlePixGenerated}
+            initialPixData={savedPixData}
           />
         </DialogContent>
       </Dialog>

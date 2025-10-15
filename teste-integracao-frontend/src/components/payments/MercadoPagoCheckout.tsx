@@ -22,6 +22,7 @@ interface MercadoPagoCheckoutProps {
   onSuccess: () => void;
   onError: (error: any) => void;
   onPixGenerated?: (pixData: any) => void;
+  initialPixData?: any;
 }
 
 declare global {
@@ -37,6 +38,7 @@ export function MercadoPagoCheckout({
   onSuccess,
   onError,
   onPixGenerated,
+  initialPixData,
 }: MercadoPagoCheckoutProps) {
   const [mp, setMp] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -65,6 +67,15 @@ export function MercadoPagoCheckout({
       console.log('💳 [MercadoPago] SDK initialized');
     }
   }, [scriptLoaded]);
+
+  // Carregar PIX inicial se existir
+  useEffect(() => {
+    if (initialPixData) {
+      console.log('📱 [MercadoPago] Loading initial PIX data:', initialPixData);
+      setPixData(initialPixData);
+      setPaymentMethod('pix');
+    }
+  }, [initialPixData]);
 
   // Escutar evento de pagamento aprovado via WebSocket
   useEffect(() => {
