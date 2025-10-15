@@ -31,16 +31,26 @@ export class PaymentsController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Webhook do Mercado Pago' })
   async handleWebhook(
-    @Query('id') paymentId: string,
-    @Query('topic') topic: string,
+    @Body() body: any,
+    @Query('id') queryId: string,
+    @Query('topic') queryTopic: string,
     @Headers('x-signature') signature: string,
     @Headers('x-request-id') requestId: string,
     @Req() request: any,
   ) {
+    // O MP pode enviar o ID via query string OU body
+    const paymentId = queryId || body?.data?.id;
+    const topic = queryTopic || body?.type;
+    
     console.log('🔔 [Webhook] Received:', { paymentId, topic });
+    console.log('🔔 [Webhook] Body:', body);
     console.log('🔐 [Webhook] Signature:', signature);
     console.log('🔐 [Webhook] Request ID:', requestId);
-    console.log('🔐 [Webhook] All Headers:', request.headers);
+    
+    if (!paymentId) {
+      console.error('❌ [Webhook] No payment ID provided');
+      return { received: false, error: 'No payment ID' };
+    }
     
     // Se não houver signature (teste do MP), validar apenas se o secret está configurado
     if (signature && requestId) {
