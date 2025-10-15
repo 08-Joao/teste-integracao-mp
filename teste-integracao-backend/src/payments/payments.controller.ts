@@ -42,4 +42,12 @@ export class PaymentsController {
     
     return { received: true };
   }
+
+  @Post('manual-process/:paymentId')
+  @ApiOperation({ summary: 'Processar manualmente um pagamento aprovado' })
+  @ApiResponse({ status: 200, description: 'Pagamento processado manualmente' })
+  async manualProcessPayment(@Param('paymentId') paymentId: string) {
+    console.log('🔧 [Manual] Processing payment:', paymentId);
+    return this.paymentsService.handlePaymentWebhook(paymentId);
+  }
 }

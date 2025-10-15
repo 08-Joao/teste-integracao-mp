@@ -137,12 +137,29 @@ export class PaymentsService {
       const paymentInfo = await this.payment.get({ id: paymentId });
 
       console.log('💳 [Payment] Payment status:', paymentInfo.status);
-      console.log('💳 [Payment] Proposal ID:', paymentInfo.metadata?.proposal_id);
+      console.log('💳 [Payment] Metadata:', paymentInfo.metadata);
+      console.log('💳 [Payment] External reference:', paymentInfo.external_reference);
 
-      if (paymentInfo.status === 'approved' && paymentInfo.metadata?.proposal_id) {
-        // Atualizar proposta para CONFIRMED
-        const proposalId = paymentInfo.metadata.proposal_id as string;
+      // Buscar proposal_id de metadata ou external_reference (para PIX)
+      const proposalId = (paymentInfo.metadata?.proposal_id || paymentInfo.external_reference) as string;
+
+      if (paymentInfo.status === 'approved' && proposalId) {
+        console.log('✅ [Payment] Processing approved payment for proposal:', proposalId);
         
+        // Atualizar registro de pagamento no banco
+        await this.prisma.payment.updateMany({
+          where: { 
+            mercadoPagoPaymentId: paymentId.toString(),
+          },
+          data: {
+            status: 'APPROVED',
+            statusDetail: paymentInfo.status_detail || null,
+            paidAt: new Date(),
+            netReceivedAmount: paymentInfo.transaction_details?.net_received_amount || null,
+          },
+        });
+
+        // Atualizar proposta para CONFIRMED
         await this.prisma.onCallProposal.update({
           where: { id: proposalId },
           data: { status: 'CONFIRMED' },
@@ -170,7 +187,7 @@ export class PaymentsService {
             data: { status: 'CANCELLED' },
           });
 
-          console.log('✅ [Payment] Proposal confirmed after payment approval');
+          console.log('✅ [Payment] Proposal confirmed, request closed, and other proposals cancelled');
         }
       }
 

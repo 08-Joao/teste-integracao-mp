@@ -19,6 +19,7 @@ services:
       - DATE_TIMEZONE=${DATE_TIMEZONE}
       - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
       - MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY}
+      - WEBHOOK_URL=${WEBHOOK_URL}
     restart: always
     networks:
       - teste_integracao_network
