@@ -3,7 +3,7 @@ version: '3.8'
 services:
   teste_integracao_backend:
     container_name: teste_integracao_backend
-    image: ${DOCKER_USER}/teste-integracao-backend:latest
+    image: ${DOCKER_USER:-utrapus}/teste-integracao-backend:latest
     build:
       context: ./teste-integracao-backend
       dockerfile: Dockerfile
@@ -11,18 +11,6 @@ services:
       - "4003:4003"
     env_file:
       - .env
-    environment:
-      - NODE_ENV=production
-      - PORT=4003
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-      - SALT_ROUNDS=${SALT_ROUNDS}
-      - DATE_TIMEZONE=${DATE_TIMEZONE}
-      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
-      - MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY}
-      - MERCADO_PAGO_WEBHOOK_SECRET=${MERCADO_PAGO_WEBHOOK_SECRET}
-      - WEBHOOK_URL=${WEBHOOK_URL}
     restart: always
     networks:
       - teste_integracao_network
@@ -30,14 +18,14 @@ services:
 
   teste_integracao_frontend:
     container_name: teste_integracao_frontend
-    image: ${DOCKER_USER}/teste-integracao-frontend:latest
+    image: ${DOCKER_USER:-utrapus}/teste-integracao-frontend:latest
     build:
       context: ./teste-integracao-frontend
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=https://api-integracaomp.tehkly.com
         - NEXT_PUBLIC_BACKEND_URL=https://api-integracaomp.tehkly.com
-        - NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY}
+        - NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY:-APP_USR-7638c7f8-4fdc-4a4f-969a-35474c27d078}
     ports:
       - "3003:3003"
     environment:
