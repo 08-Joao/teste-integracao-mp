@@ -1,9 +1,10 @@
 import axios from "axios";
 
-const baseURL =
-    typeof window !== 'undefined' && window.location.hostname.endsWith('tehkly.com')
-        ? 'https://api-integracaomp.tehkly.com/api'
-        : 'http://localhost:4003/api';
+const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL 
+    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`
+    : 'http://localhost:4003/api';
+
+console.log('🌐 [httpClient] Using backend URL:', baseURL);
 
 const backendRoute = axios.create({
     baseURL,
